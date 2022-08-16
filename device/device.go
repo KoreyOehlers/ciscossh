@@ -2,6 +2,7 @@ package device
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"time"
 
@@ -45,14 +46,17 @@ func (d *IOSDevice) Disconnect() error {
 
 func (d *IOSDevice) SendCommand(command string) (string, error) {
 
+	return "", nil
 }
 
 func (d *IOSDevice) SendConfig(commands []string) error {
 
+	return nil
 }
 
 func (d *IOSDevice) SaveConfig() error {
 
+	return nil
 }
 
 func (d *IOSDevice) sessionPrep() error {
@@ -67,6 +71,7 @@ func (d *IOSDevice) sessionPrep() error {
 		return err
 	}
 
+	fmt.Println(out)
 	if !r.MatchString(out) {
 		return errors.New("failed to find prompt, pattern: " + pattern + " , output: " + out)
 	}
@@ -75,6 +80,8 @@ func (d *IOSDevice) sessionPrep() error {
 
 	d.prompt = stringmatch[1]
 	d.mode = stringmatch[0][len(stringmatch[0])-1:]
+
+	return nil
 }
 
 func (d *IOSDevice) enableMode() {

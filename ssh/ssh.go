@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-var ciphers = []string{"3des-cbc", "aes128-cbc", "aes192-cbc", "aes256-cbc", "aes128-ctr"}
+var ciphers = []string{"aes256-cbc", "aes192-cbc", "aes128-cbc", "aes128-ctr", "3des-cbc"}
 
 type SSHConn struct {
 	Host     string
