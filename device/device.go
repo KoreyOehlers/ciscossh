@@ -2,7 +2,6 @@ package device
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"time"
 
@@ -46,15 +45,49 @@ func (d *IOSDevice) Disconnect() error {
 
 func (d *IOSDevice) SendCommand(command string) (string, error) {
 
-	return "", nil
+	command = command + "\n"
+
+	d.conn.Write(command)
+	results, err := d.readSSH(d.prompt)
+
+	if err != nil {
+		return "", err
+	}
+
+	return results, nil
 }
 
 func (d *IOSDevice) SendConfig(commands []string) error {
+
+	_, err := d.SendCommand("config t")
+
+	if err != nil {
+		return errors.New("could not enter config mode")
+	}
+
+	for _, cmd := range commands {
+		results, err := d.SendCommand(cmd)
+		if err != nil {
+			return errors.New("could not send command " + cmd + " " + results)
+		}
+	}
+
+	_, err = d.SendCommand("end")
+
+	if err != nil {
+		return errors.New("could not exit config mode")
+	}
 
 	return nil
 }
 
 func (d *IOSDevice) SaveConfig() error {
+
+	_, err := d.SendCommand("write mem")
+
+	if err != nil {
+		return errors.New("failed to save config: " + err.Error())
+	}
 
 	return nil
 }
@@ -71,9 +104,8 @@ func (d *IOSDevice) sessionPrep() error {
 		return err
 	}
 
-	fmt.Println(out)
 	if !r.MatchString(out) {
-		return errors.New("failed to find prompt, pattern: " + pattern + " , output: " + out)
+		return errors.New("failed to find prompt pattern: " + pattern + ", output: " + out)
 	}
 
 	stringmatch := r.FindStringSubmatch(out)
@@ -81,15 +113,58 @@ func (d *IOSDevice) sessionPrep() error {
 	d.prompt = stringmatch[1]
 	d.mode = stringmatch[0][len(stringmatch[0])-1:]
 
+	if d.prompt == "" || d.mode == "" {
+		return errors.New("failed to get prompt or mode")
+	}
+
+	if d.mode != "#" {
+		err = d.enableMode()
+		if err != nil {
+			return errors.New("failed to enter enable mode: " + err.Error())
+		}
+	}
+
+	d.prompt = d.prompt + d.mode
+
+	err = d.setPaging()
+	if err != nil {
+		return errors.New("failed to set paging: " + err.Error())
+	}
+
 	return nil
 }
 
-func (d *IOSDevice) enableMode() {
+func (d *IOSDevice) enableMode() error {
 
+	if d.mode != ">" {
+		return errors.New("> not found in mode string")
+	}
+
+	d.conn.Write("enable\n")
+	d.conn.Write(d.Enable + "\n")
+
+	_, err := d.readSSH(d.prompt + "#")
+
+	if err != nil {
+		return errors.New("incorrect enable password or other issue")
+	}
+
+	d.mode = "#"
+
+	return nil
 }
 
-func (d *IOSDevice) setPaging() {
+func (d *IOSDevice) setPaging() error {
 
+	command := "terminal length 0"
+
+	_, err := d.SendCommand(command)
+
+	if err != nil {
+		return errors.New("could not send terminal length command")
+	}
+
+	return nil
 }
 
 func (d *IOSDevice) readSSH(pattern string) (string, error) {
@@ -98,7 +173,6 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 	errChan := make(chan error)
 
 	go func(pattern string) {
-		var out string
 
 		r, err := regexp.Compile(pattern)
 
@@ -109,23 +183,26 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 
 		result, err := d.conn.Read()
 
+		if r.MatchString(result) {
+			outChan <- result
+		}
+
 		for (err == nil) && (!r.MatchString(result)) {
 			out, _ := d.conn.Read()
 			result += out
-
 		}
 
-		outChan <- out
+		outChan <- result
 	}(pattern)
 
 	select {
-	case <-outChan:
-		return <-outChan, nil
+	case recv := <-outChan:
+		return recv, nil
 
-	case <-errChan:
-		return "", <-errChan
+	case recv := <-errChan:
+		return "", recv
 
-	case <-time.After(6 * time.Second):
+	case <-time.After(10 * time.Second):
 		err := errors.New("timeout while reading, read pattern not found pattern: " + pattern)
 		return "", err
 	}

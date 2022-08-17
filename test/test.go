@@ -20,4 +20,9 @@ func main() {
 
 	defer testsw.Disconnect()
 
+	err = testsw.SaveConfig()
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 }
