@@ -32,14 +32,13 @@ func (c *SSHConn) Connect() error {
 		Timeout:         6 * time.Second,
 	}
 	sshConfig.Ciphers = append(sshConfig.Ciphers, ciphers...)
-	addr := c.Host + ":22"
-	conn, err := ssh.Dial("tcp", addr, sshConfig)
+
+	conn, err := ssh.Dial("tcp", c.Host+":22", sshConfig)
 	if err != nil {
 		return errors.New("failed to connect to device: " + err.Error())
 	}
 
 	session, err := conn.NewSession()
-
 	if err != nil {
 		return errors.New("failed to Start a new session: " + err.Error())
 	}
@@ -53,15 +52,18 @@ func (c *SSHConn) Connect() error {
 
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          1,
-		ssh.TTY_OP_ISPEED: 14400,
-		ssh.TTY_OP_OSPEED: 14400,
+		ssh.TTY_OP_ISPEED: 115200,
+		ssh.TTY_OP_OSPEED: 115200,
 	}
 
-	if err := session.RequestPty("vt100", 0, 200, modes); err != nil {
+	err = session.RequestPty("vt100", 0, 200, modes)
 
+	if err != nil {
 		return errors.New("failed to request Pty: " + err.Error())
 	}
-	if err := session.Shell(); err != nil {
+
+	err = session.Shell()
+	if err != nil {
 		return errors.New("failed to invoke shell: " + err.Error())
 	}
 
@@ -71,13 +73,13 @@ func (c *SSHConn) Connect() error {
 func (c *SSHConn) Disconnect() error {
 
 	err := c.client.Close()
+
 	return err
 }
 
 func (c *SSHConn) Read() (string, error) {
 
 	buff := make([]byte, 2048)
-
 	n, err := c.reader.Read(buff)
 
 	return string(buff[:n]), err

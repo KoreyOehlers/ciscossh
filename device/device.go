@@ -45,6 +45,10 @@ func (d *IOSDevice) Disconnect() error {
 
 func (d *IOSDevice) SendCommand(command string) (string, error) {
 
+	if (ssh.SSHConn{}) == d.conn {
+		return "", errors.New("failed to send command. Run Connect before sending")
+	}
+
 	command = command + "\n"
 
 	d.conn.Write(command)
@@ -99,6 +103,8 @@ func (d *IOSDevice) sessionPrep() error {
 
 	r, _ := regexp.Compile(regex)
 
+	time.Sleep(10 * time.Millisecond)
+	d.conn.Write("\n")
 	out, err := d.readSSH(pattern)
 	if err != nil {
 		return err
@@ -146,7 +152,7 @@ func (d *IOSDevice) enableMode() error {
 	_, err := d.readSSH(d.prompt + "#")
 
 	if err != nil {
-		return errors.New("incorrect enable password or other issue")
+		return errors.New("incorrect enable password or other issue at enable")
 	}
 
 	d.mode = "#"
@@ -161,7 +167,7 @@ func (d *IOSDevice) setPaging() error {
 	_, err := d.SendCommand(command)
 
 	if err != nil {
-		return errors.New("could not send terminal length command")
+		return errors.New("could not send terminal length command " + err.Error())
 	}
 
 	return nil
@@ -177,6 +183,7 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 		r, err := regexp.Compile(pattern)
 
 		if err != nil {
+			err = errors.New(err.Error() + " " + pattern)
 			errChan <- err
 			return
 		}
@@ -202,7 +209,7 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 	case recv := <-errChan:
 		return "", recv
 
-	case <-time.After(10 * time.Second):
+	case <-time.After(8 * time.Second):
 		err := errors.New("timeout while reading, read pattern not found pattern: " + pattern)
 		return "", err
 	}
