@@ -127,7 +127,7 @@ func (d *IOSDevice) sessionPrep() error {
 
 		if d.Enable == "" {
 			return errors.New("failed to enter enable mode: enter enable password" +
-				"after the user password when creating calling NewDevice")
+				" after the user password when creating calling NewDevice")
 		}
 
 		err = d.enableMode()

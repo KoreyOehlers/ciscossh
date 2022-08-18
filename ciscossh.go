@@ -37,6 +37,7 @@ func NewDevice(
 }
 
 func GetCredentials() (string, string, error) {
+
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter Username: ")
@@ -51,6 +52,22 @@ func GetCredentials() (string, string, error) {
 		return "", "", err
 	}
 	fmt.Println("")
+
 	password := string(bytePassword)
+
 	return strings.TrimSpace(username), strings.TrimSpace(password), nil
+}
+
+func GetEnable() (string, error) {
+
+	fmt.Print("Enter Enable Password: ")
+	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("")
+
+	password := string(bytePassword)
+
+	return strings.TrimSpace(password), nil
 }
