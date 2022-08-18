@@ -46,7 +46,8 @@ func (d *IOSDevice) Disconnect() error {
 func (d *IOSDevice) SendCommand(command string) (string, error) {
 
 	if (ssh.SSHConn{}) == d.conn {
-		return "", errors.New("failed to send command. Run Connect before sending")
+		return "", errors.New("failed to send command. Run Connect() before" +
+			" SendCommand()")
 	}
 
 	command = command + "\n"
@@ -111,7 +112,8 @@ func (d *IOSDevice) sessionPrep() error {
 	}
 
 	if !r.MatchString(out) {
-		return errors.New("failed to find prompt pattern: " + pattern + ", output: " + out)
+		return errors.New("failed to find prompt pattern: " + pattern +
+			", output: " + out)
 	}
 
 	stringmatch := r.FindStringSubmatch(out)
@@ -126,8 +128,8 @@ func (d *IOSDevice) sessionPrep() error {
 	if d.mode != "#" {
 
 		if d.Enable == "" {
-			return errors.New("failed to enter enable mode: enter enable password" +
-				" after the user password when creating calling NewDevice")
+			return errors.New("failed to enter enable mode: enter enable " +
+				"password after the user password when creating calling NewDevice")
 		}
 
 		err = d.enableMode()
@@ -173,7 +175,8 @@ func (d *IOSDevice) setPaging() error {
 	_, err := d.SendCommand(command)
 
 	if err != nil {
-		return errors.New("could not send terminal length command " + err.Error())
+		return errors.New("could not send terminal length command " +
+			err.Error())
 	}
 
 	return nil
@@ -209,6 +212,7 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 	}(pattern)
 
 	select {
+
 	case recv := <-outChan:
 		return recv, nil
 
@@ -216,7 +220,8 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 		return "", recv
 
 	case <-time.After(8 * time.Second):
-		err := errors.New("timeout while reading, read pattern not found pattern: " + pattern)
+		err := errors.New("timeout while reading, read pattern not found" +
+			"pattern: " + pattern)
 		return "", err
 	}
 }
