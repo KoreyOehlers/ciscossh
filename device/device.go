@@ -52,9 +52,12 @@ func (d *IOSDevice) SendCommand(command string) (string, error) {
 
 	command = command + "\n"
 
-	d.conn.Write(command)
-	results, err := d.readSSH(d.prompt)
+	err := d.conn.Write(command)
+	if err != nil {
+		return "", err
+	}
 
+	results, err := d.readSSH(d.prompt)
 	if err != nil {
 		return "", err
 	}
@@ -101,14 +104,18 @@ func (d *IOSDevice) sessionPrep() error {
 
 	regex := "\r?(.*)[#>]"
 	pattern := "#|>"
-
 	r, _ := regexp.Compile(regex)
 
 	time.Sleep(10 * time.Millisecond)
-	d.conn.Write("\n")
+
+	err := d.conn.Write("\n")
+	if err != nil {
+		return errors.New("failed session prep: " + err.Error())
+	}
+
 	out, err := d.readSSH(pattern)
 	if err != nil {
-		return err
+		return errors.New("failed session prep: " + err.Error())
 	}
 
 	if !r.MatchString(out) {
@@ -154,11 +161,17 @@ func (d *IOSDevice) enableMode() error {
 		return errors.New("> not found in mode string")
 	}
 
-	d.conn.Write("enable\n")
-	d.conn.Write(d.Enable + "\n")
+	err := d.conn.Write("enable\n")
+	if err != nil {
+		return errors.New("error sending enable command")
+	}
 
-	_, err := d.readSSH(d.prompt + "#")
+	err = d.conn.Write(d.Enable + "\n")
+	if err != nil {
+		return errors.New("error sending enable password")
+	}
 
+	_, err = d.readSSH(d.prompt + "#")
 	if err != nil {
 		return errors.New("incorrect enable password or other issue at enable")
 	}
@@ -221,7 +234,7 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 
 	case <-time.After(8 * time.Second):
 		err := errors.New("timeout while reading, read pattern not found" +
-			"pattern: " + pattern)
+			" pattern: " + pattern)
 		return "", err
 	}
 }

@@ -85,10 +85,10 @@ func (c *SSHConn) Read() (string, error) {
 	return string(buff[:n]), err
 }
 
-func (c *SSHConn) Write(cmd string) int {
+func (c *SSHConn) Write(cmd string) error {
 
 	commandBytes := []byte(cmd)
-	code, _ := c.writer.Write(commandBytes)
+	_, err := c.writer.Write(commandBytes)
 
-	return code
+	return err
 }
