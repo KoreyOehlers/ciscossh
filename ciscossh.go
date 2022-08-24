@@ -7,7 +7,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/koreyoehlers/ciscossh/device"
 	"golang.org/x/term"
 )
 
@@ -17,7 +16,7 @@ func NewDevice(
 	username string,
 	password string,
 	args ...string, //args used for enable password
-) device.IOSDevice {
+) IOSDevice {
 
 	enable := ""
 
@@ -25,7 +24,7 @@ func NewDevice(
 		enable = args[0]
 	}
 
-	iosdevice := device.IOSDevice{
+	iosdevice := IOSDevice{
 		Name:     name,
 		IP:       ip,
 		Username: username,
