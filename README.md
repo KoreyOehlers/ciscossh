@@ -8,7 +8,7 @@ Go package for connecting to Cisco devices over SSH
 import (
 	"fmt"
 
-	"github.com/koreyoehlers/ciscossh"
+	"github.com/KoreyOehlers/ciscossh"
 )
 
 func main() {
