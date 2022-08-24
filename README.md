@@ -1,6 +1,6 @@
 # ciscossh
 
-Go methods for connecting to Cisco devices over SSH
+Go package for connecting to Cisco devices over SSH
 
 ### Usage: 
 
