@@ -1,4 +1,4 @@
-module github.com/koreyoehlers/ciscossh
+module github.com/KoreyOehlers/ciscossh
 
 go 1.18
 
