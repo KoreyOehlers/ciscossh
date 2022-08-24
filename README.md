@@ -25,6 +25,11 @@ func main() {
 	defer testswitch.Disconnect()
 	
 	results, err := testswitch.SendCommand("show run")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	
 	fmt.Println(results)
 }
 ```
