@@ -216,13 +216,14 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 		}
 
 		for (err == nil) && (!r.MatchString(result)) {
-			out, _ := d.conn.Read()
-			result += out
-		}
+			out, err := d.conn.Read()
 
-		if err != nil {
-			errChan <- err
-			return
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			result += out
 		}
 
 		outChan <- result
