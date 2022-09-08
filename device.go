@@ -102,7 +102,7 @@ func (d *IOSDevice) sessionPrep() error {
 	pattern := "#|>"
 	r, _ := regexp.Compile(regex)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	err := d.conn.Write("\n")
 	if err != nil {
@@ -132,7 +132,7 @@ func (d *IOSDevice) sessionPrep() error {
 
 		if d.Enable == "" {
 			return errors.New("failed to enter enable mode: enter enable " +
-				"password after the user password when creating calling NewDevice")
+				"password after the user password when calling NewDevice")
 		}
 
 		err = d.enableMode()
@@ -206,6 +206,10 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 		}
 
 		result, err := d.conn.Read()
+		if err != nil {
+			errChan <- err
+			return
+		}
 
 		if r.MatchString(result) {
 			outChan <- result
@@ -214,6 +218,11 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 		for (err == nil) && (!r.MatchString(result)) {
 			out, _ := d.conn.Read()
 			result += out
+		}
+
+		if err != nil {
+			errChan <- err
+			return
 		}
 
 		outChan <- result
