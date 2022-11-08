@@ -44,8 +44,6 @@ func (d *IOSDevice) Disconnect() error {
 
 func (d *IOSDevice) SendCommand(command string) (string, error) {
 
-	var results string
-
 	if (SSHConn{}) == d.conn {
 		return "", errors.New("failed to send command. Run Connect() before" +
 			" SendCommand()")
@@ -58,7 +56,7 @@ func (d *IOSDevice) SendCommand(command string) (string, error) {
 		return "", err
 	}
 
-	results, err = d.readSSH(d.prompt)
+	results, err := d.readSSH(d.prompt)
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +130,7 @@ func (d *IOSDevice) sessionPrep() error {
 
 		if d.Enable == "" {
 			return errors.New("failed to enter enable mode: enter enable " +
-				"password after the user password when creating calling NewDevice")
+				"password after the user password when creating NewDevice")
 		}
 
 		err = d.enableMode()
@@ -205,15 +203,24 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 			return
 		}
 
-		var result string
-		result, err = d.conn.Read()
+		result, err := d.conn.Read()
+		if err != nil {
+			errChan <- err
+			return
+		}
 
 		if r.MatchString(result) {
 			outChan <- result
 		}
 
 		for (err == nil) && (!r.MatchString(result)) {
-			out, _ := d.conn.Read()
+			out, err := d.conn.Read()
+
+			if err != nil {
+				errChan <- err
+				return
+			}
+
 			result += out
 		}
 
@@ -228,7 +235,7 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 	case recv := <-errChan:
 		return "", recv
 
-	case <-time.After(6 * time.Second):
+	case <-time.After(8 * time.Second):
 		err := errors.New("timeout while reading, read pattern not found" +
 			" pattern: " + pattern)
 		return "", err
