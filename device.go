@@ -3,6 +3,7 @@ package ciscossh
 import (
 	"errors"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -43,6 +44,8 @@ func (d *IOSDevice) Disconnect() error {
 
 func (d *IOSDevice) SendCommand(command string) (string, error) {
 
+	var results string
+
 	if (SSHConn{}) == d.conn {
 		return "", errors.New("failed to send command. Run Connect() before" +
 			" SendCommand()")
@@ -55,7 +58,7 @@ func (d *IOSDevice) SendCommand(command string) (string, error) {
 		return "", err
 	}
 
-	results, err := d.readSSH(d.prompt)
+	results, err = d.readSSH(d.prompt)
 	if err != nil {
 		return "", err
 	}
@@ -102,13 +105,6 @@ func (d *IOSDevice) sessionPrep() error {
 	pattern := "#|>"
 	r, _ := regexp.Compile(regex)
 
-	time.Sleep(20 * time.Millisecond)
-
-	err := d.conn.Write("\n")
-	if err != nil {
-		return errors.New("failed session prep: " + err.Error())
-	}
-
 	out, err := d.readSSH(pattern)
 	if err != nil {
 		return errors.New("failed session prep: " + err.Error())
@@ -122,6 +118,10 @@ func (d *IOSDevice) sessionPrep() error {
 	stringmatch := r.FindStringSubmatch(out)
 
 	d.prompt = stringmatch[1]
+
+	// this is not generalized code. My banner has * characters,
+	// and sometimes they get attached to the prompt name
+	d.prompt = strings.ReplaceAll(d.prompt, "*", "")
 	d.mode = stringmatch[0][len(stringmatch[0])-1:]
 
 	if d.prompt == "" || d.mode == "" {
@@ -132,7 +132,7 @@ func (d *IOSDevice) sessionPrep() error {
 
 		if d.Enable == "" {
 			return errors.New("failed to enter enable mode: enter enable " +
-				"password after the user password when calling NewDevice")
+				"password after the user password when creating calling NewDevice")
 		}
 
 		err = d.enableMode()
@@ -205,24 +205,15 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 			return
 		}
 
-		result, err := d.conn.Read()
-		if err != nil {
-			errChan <- err
-			return
-		}
+		var result string
+		result, err = d.conn.Read()
 
 		if r.MatchString(result) {
 			outChan <- result
 		}
 
 		for (err == nil) && (!r.MatchString(result)) {
-			out, err := d.conn.Read()
-
-			if err != nil {
-				errChan <- err
-				return
-			}
-
+			out, _ := d.conn.Read()
 			result += out
 		}
 
@@ -237,7 +228,7 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 	case recv := <-errChan:
 		return "", recv
 
-	case <-time.After(8 * time.Second):
+	case <-time.After(6 * time.Second):
 		err := errors.New("timeout while reading, read pattern not found" +
 			" pattern: " + pattern)
 		return "", err
