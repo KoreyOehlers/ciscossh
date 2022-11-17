@@ -3,7 +3,6 @@ package ciscossh
 import (
 	"errors"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -99,7 +98,7 @@ func (d *IOSDevice) SaveConfig() error {
 
 func (d *IOSDevice) sessionPrep() error {
 
-	regex := "\r?(.*)[#>]"
+	regex := `(\w.*)[#>]`
 	pattern := "#|>"
 	r, _ := regexp.Compile(regex)
 
@@ -116,10 +115,6 @@ func (d *IOSDevice) sessionPrep() error {
 	stringmatch := r.FindStringSubmatch(out)
 
 	d.prompt = stringmatch[1]
-
-	// this is not generalized code. My banner has * characters,
-	// and sometimes they get attached to the prompt name
-	d.prompt = strings.ReplaceAll(d.prompt, "*", "")
 	d.mode = stringmatch[0][len(stringmatch[0])-1:]
 
 	if d.prompt == "" || d.mode == "" {
@@ -235,7 +230,7 @@ func (d *IOSDevice) readSSH(pattern string) (string, error) {
 	case recv := <-errChan:
 		return "", recv
 
-	case <-time.After(8 * time.Second):
+	case <-time.After(6 * time.Second):
 		err := errors.New("timeout while reading, read pattern not found" +
 			" pattern: " + pattern)
 		return "", err
