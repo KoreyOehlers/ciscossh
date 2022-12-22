@@ -3,6 +3,7 @@ package ciscossh
 import (
 	"errors"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -59,6 +60,11 @@ func (d *IOSDevice) SendCommand(command string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// Remove the prompt and the command from results
+	command = strings.Replace(command, "\n", "", -1)
+	results = strings.Replace(results, command, "", -1)
+	results = strings.Replace(results, "\n"+d.prompt, "", -1)
 
 	return results, nil
 }
